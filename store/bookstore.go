@@ -1,5 +1,5 @@
 package store
 
-import "hello-world/crud/models"
+import "hello-gorld/crud/models"
 
 var BookStore = make(map[string]models.Book)

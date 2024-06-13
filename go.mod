@@ -1,4 +1,4 @@
-module hello-world/crud
+module hello-gorld/crud
 
 go 1.22.0
 

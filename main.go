@@ -1,7 +1,8 @@
 package main
 
 import (
-	"hello-world/crud/handlers"
+	"hello-gorld/crud/handlers"
+	"hello-gorld/crud/middleware"
 	"log"
 	"net/http"
 
@@ -12,6 +13,9 @@ import (
 func main() {
 
     r := mux.NewRouter()
+
+    r.Use(middleware.JSONMiddleware)
+
 
     r.HandleFunc("/books/", handlers.GetBooks).Methods("GET")
     r.HandleFunc("/books/{id}", handlers.GetBook).Methods("GET")

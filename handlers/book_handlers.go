@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"hello-world/crud/models"
-	"hello-world/crud/store"
-	"hello-world/crud/utils"
+	"hello-gorld/crud/models"
+	"hello-gorld/crud/store"
+	"hello-gorld/crud/utils"
 	"net/http"
 
 	"github.com/gorilla/mux"
