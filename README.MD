@@ -17,7 +17,8 @@ hello-gorld/
 ├── main.go
 ├── go.mod
 ├── models/
-│   └── book.go
+│   └── bookstore.go //deprecated
+│   └── books.json 
 ├── handlers/
 │   └── book_handlers.go
 ├── store/
