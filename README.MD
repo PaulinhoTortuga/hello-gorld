@@ -17,12 +17,12 @@ hello-gorld/
 ├── main.go
 ├── go.mod
 ├── models/
-│   └── bookstore.go //deprecated
-│   └── books.json 
+│   └── bookstore.go
 ├── handlers/
 │   └── book_handlers.go
 ├── store/
-│   └── bookstore.go
+│   └── bookstore.go //deprecated
+│   └── books.json
 ├── utils/
 │   └── update.go
 └── middleware/
