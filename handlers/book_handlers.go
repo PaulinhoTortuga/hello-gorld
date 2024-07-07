@@ -2,47 +2,101 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"hello-gorld/crud/models"
-	"hello-gorld/crud/store"
 	"hello-gorld/crud/utils"
+	"io"
 	"net/http"
+	"os"
+	"slices"
 
 	"github.com/gorilla/mux"
 )
 
-
 func CreateBook (w http.ResponseWriter, r *http.Request) {
+    var store models.Books
     var book models.Book
-    err := json.NewDecoder(r.Body).Decode(&book)
-    if(err != nil){
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return 
-    }
-    book.ID, _ = utils.GenerateId()
 
-    store.BookStore[book.ID] = book
-    w.Header().Set("Content-Type", "application/json")
+    err := json.NewDecoder(r.Body).Decode(&book)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    jsonFile, err := os.Open("./store/books.json")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer jsonFile.Close()
+
+    byteValue, err := io.ReadAll(jsonFile)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }    
+
+    err = json.Unmarshal(byteValue, &store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    book.ID, _ = utils.GenerateId()
+    store.Books = append(store.Books, book)
+
+    content, err := json.Marshal(store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    err = os.WriteFile("./store/books.json", content, os.ModePerm)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
     w.WriteHeader(http.StatusCreated)
     json.NewEncoder(w).Encode(book)
 }
 
 func UpdateBook (w http.ResponseWriter, r *http.Request) {
+    var store models.Books
+    var updates map[string]interface{}
     vars := mux.Vars(r)
     id := vars["id"]
 
-    book, exist := store.BookStore[id]
-    if !exist {
+    jsonFile, err := os.Open("./store/books.json")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer jsonFile.Close()
+
+    byteValue, err := io.ReadAll(jsonFile)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }    
+
+    err = json.Unmarshal(byteValue, &store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    idx := slices.IndexFunc(store.Books, func(b models.Book) bool { return b.ID == id })
+    if idx == -1 {
         http.Error(w, "Book not found", http.StatusNotFound)
         return
     }
-    
-    var updates map[string]interface{}
 
-    err := json.NewDecoder(r.Body).Decode(&updates)
+    book := store.Books[idx]
+
+    err = json.NewDecoder(r.Body).Decode(&updates)
     if(err != nil){
         http.Error(w, err.Error(), http.StatusBadRequest)
-        return 
+        return
     }
 
     err = utils.UpdateStructFields(&book, updates)
@@ -51,61 +105,129 @@ func UpdateBook (w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    store.BookStore[id] = book
+    store.Books[idx] = book
 
-    w.Header().Set("Content-Type", "application/json")
+    content, err := json.Marshal(store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    err = os.WriteFile("./store/books.json", content, os.ModePerm)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(book)
 }
 
 func GetBooks (w http.ResponseWriter, r *http.Request) {
-    var res []models.Book
-    for _, v := range store.BookStore {
-        res = append(res, v)
+    var res models.Books
+
+    jsonFile, err := os.Open("./store/books.json")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
     }
-    w.Header().Set("Content-Type", "application/json")
+    defer jsonFile.Close()
+
+    byteValue, err := io.ReadAll(jsonFile)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+            
+    err = json.Unmarshal(byteValue, &res)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
     w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(res)
+    json.NewEncoder(w).Encode(res.Books)
 }
 
-func GetBook (w http.ResponseWriter, r *http.Request) {
+func GetBook(w http.ResponseWriter, r *http.Request) {
+    var store models.Books
     vars := mux.Vars(r)
     id := vars["id"]
 
-    book, exist := store.BookStore[id]
-    if !exist {
+    jsonFile, err := os.Open("./store/books.json")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer jsonFile.Close()
+
+    byteValue, err := io.ReadAll(jsonFile)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }    
+
+    err = json.Unmarshal(byteValue, &store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    idx := slices.IndexFunc(store.Books, func(b models.Book) bool { return b.ID == id })
+    if idx == -1 {
         http.Error(w, "Book not found", http.StatusNotFound)
         return
     }
-    w.Header().Set("Content-Type", "application/json")
+
+    book := store.Books[idx]
+
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(book)
 }
 
 func DeleteBook(w http.ResponseWriter, r *http.Request) {
+    var store models.Books
     vars := mux.Vars(r)
     id := vars["id"]
 
-    book, exists := store.BookStore[id]
-    if !exists {
+    jsonFile, err := os.Open("./store/books.json")
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer jsonFile.Close()
+
+    byteValue, err := io.ReadAll(jsonFile)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }    
+
+    err = json.Unmarshal(byteValue, &store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    idx := slices.IndexFunc(store.Books, func(b models.Book) bool { return b.ID == id })
+    if idx == -1 {
         http.Error(w, "Book not found", http.StatusNotFound)
         return
     }
 
-    fmt.Printf("Before deletion: %+v\n", book)
+    store.Books = append(store.Books[:idx], store.Books[idx+1:]...)
 
-    // Delete the book from the store
-    delete(store.BookStore, id)
-
-    // Verify deletion
-    _, stillExists := store.BookStore[id]
-    if stillExists {
-        fmt.Printf("Failed to delete book with ID %s\n", id)
-    } else {
-        fmt.Println("Book deleted successfully")
+    content, err := json.Marshal(store)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
     }
 
-    w.Header().Set("Content-Type", "application/json")
+    err = os.WriteFile("./store/books.json", content, os.ModePerm)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    
     w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(book)
 }
